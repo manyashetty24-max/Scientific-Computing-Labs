@@ -1,0 +1,305 @@
+"""
+ESG 633 - Programming for Geoinformatics
+Lab 3: Basic Image Processing
+
+HOW TO USE THIS FILE:
+1. Put an RGB image (jpg/png) in the SAME FOLDER as this script.
+2. Change IMAGE_PATH below to that file's name.
+3. Run the file in VS Code (Run > Run Without Debugging, or the ▶ button).
+4. Each task will pop up a matplotlib window. Close a window to move to the next task.
+
+Every section below is commented to explain WHAT the code does and WHY,
+since this assumes zero prior coding background.
+"""
+
+# ---------------------------------------------------------------------------
+# IMPORTS
+# ---------------------------------------------------------------------------
+# cv2 = OpenCV, the library that loads/processes images (as arrays of numbers).
+# numpy (np) = lets us do fast math on those arrays (mean, std, cropping, etc).
+# matplotlib.pyplot (plt) = lets us actually SEE the images and plots on screen.
+import cv2
+import numpy as np
+import matplotlib.pyplot as plt
+import os
+
+# ---------------------------------------------------------------------------
+# SETTINGS - change this to your own image's filename
+# ---------------------------------------------------------------------------
+IMAGE_FILENAME = "my_image.jpg.jfif"
+
+# The line below builds a FULL path to the image based on where THIS SCRIPT
+# lives on disk (not wherever your terminal happens to be pointed at).
+# This fixes the common "file not found" error caused by VS Code's terminal
+# opening in the wrong folder.
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+IMAGE_PATH = os.path.join(SCRIPT_DIR, IMAGE_FILENAME)
+
+
+# ---------------------------------------------------------------------------
+# TASK 1: Load the RGB image and visualize it
+# ---------------------------------------------------------------------------
+def task1_load_and_show(path):
+    # cv2.imread() reads an image from disk into a NumPy array of shape
+    # (Height, Width, 3). IMPORTANT QUIRK: OpenCV loads colors in BGR order
+    # (Blue, Green, Red), NOT the usual RGB order.
+    img_bgr = cv2.imread(path)
+
+    if img_bgr is None:
+        raise FileNotFoundError(
+            f"Could not find '{path}'. Make sure the image is in the same "
+            f"folder as this script and IMAGE_PATH is spelled correctly."
+        )
+
+    # matplotlib expects RGB order, so we convert BGR -> RGB before displaying.
+    # If we skip this, colors look swapped (blues look orange, etc).
+    img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+
+    plt.figure(figsize=(6, 5))
+    plt.imshow(img_rgb)
+    plt.title("Task 1: Original RGB Image")
+    plt.axis("off")  # hides the pixel-coordinate axes for a cleaner look
+    plt.show()
+
+    # We return BOTH versions because OpenCV functions (cv2.something) expect
+    # BGR, while anything we plot with matplotlib expects RGB.
+    return img_bgr, img_rgb
+
+
+# ---------------------------------------------------------------------------
+# TASK 2: Mean/std per channel, normalize, visualize
+# ---------------------------------------------------------------------------
+def task2_normalize(img_rgb):
+    # img_rgb has shape (H, W, 3). axis=(0,1) means "average over height AND
+    # width, but keep the 3 channels separate" -> gives us 3 numbers (R,G,B).
+    mean = img_rgb.mean(axis=(0, 1))
+    std = img_rgb.std(axis=(0, 1))
+    print("Task 2: Channel means (R,G,B) =", mean)
+    print("Task 2: Channel std devs (R,G,B) =", std)
+
+    # Normalization formula: (pixel - mean) / std for each channel.
+    # We must convert to float first (uint8 can't hold negative numbers or
+    # decimals, and normalized values will be both).
+    img_float = img_rgb.astype(np.float32)
+    normalized = (img_float - mean) / std
+
+    # Normalized values are roughly centered around 0 (mostly between -3 and
+    # 3). To visualize them as a normal image, we rescale them back into the
+    # displayable 0-1 range using min-max scaling.
+    norm_display = (normalized - normalized.min()) / (normalized.max() - normalized.min())
+
+    plt.figure(figsize=(6, 5))
+    plt.imshow(norm_display)
+    plt.title("Task 2: Normalized Image (rescaled for display)")
+    plt.axis("off")
+    plt.show()
+
+    return normalized
+
+
+# ---------------------------------------------------------------------------
+# TASK 3: Print dimensions, dtype, total pixels
+# ---------------------------------------------------------------------------
+def task3_print_info(img_bgr):
+    # .shape gives (Height, Width, Channels) for a color image.
+    height, width, channels = img_bgr.shape
+    # .dtype tells us how each number is stored, e.g. uint8 = 0-255 integers.
+    dtype = img_bgr.dtype
+    # .size gives the TOTAL number of individual values (H * W * channels).
+    total_values = img_bgr.size
+    # Total pixels (not counting channels separately) = Height * Width.
+    total_pixels = height * width
+
+    print("Task 3: Height =", height)
+    print("Task 3: Width =", width)
+    print("Task 3: Channels =", channels)
+    print("Task 3: Data type =", dtype)
+    print("Task 3: Total pixels (H x W) =", total_pixels)
+    print("Task 3: Total individual values (H x W x C) =", total_values)
+
+
+# ---------------------------------------------------------------------------
+# TASK 4: Crop a small region and visualize
+# ---------------------------------------------------------------------------
+def task4_crop(img_rgb):
+    h, w, _ = img_rgb.shape
+
+    # NumPy array slicing: array[row_start:row_end, col_start:col_end]
+    # Here we grab a box roughly in the middle third of the image.
+    y1, y2 = h // 4, h // 4 + h // 3
+    x1, x2 = w // 4, w // 4 + w // 3
+    cropped = img_rgb[y1:y2, x1:x2]
+
+    plt.figure(figsize=(5, 5))
+    plt.imshow(cropped)
+    plt.title(f"Task 4: Cropped Region ({y2-y1}x{x2-x1} px)")
+    plt.axis("off")
+    plt.show()
+
+    return cropped
+
+
+# ---------------------------------------------------------------------------
+# TASK 5: Split into 4 quadrants, visualize each, then merge back
+# ---------------------------------------------------------------------------
+def task5_split_and_merge(img_rgb):
+    h, w, _ = img_rgb.shape
+    mid_h, mid_w = h // 2, w // 2
+
+    # Slice the array into 4 quadrants using the midpoints.
+    top_left = img_rgb[0:mid_h, 0:mid_w]
+    top_right = img_rgb[0:mid_h, mid_w:w]
+    bottom_left = img_rgb[mid_h:h, 0:mid_w]
+    bottom_right = img_rgb[mid_h:h, mid_w:w]
+
+    # Show all four in a 2x2 grid of subplots.
+    fig, axes = plt.subplots(2, 2, figsize=(8, 8))
+    quadrants = [top_left, top_right, bottom_left, bottom_right]
+    titles = ["Top-Left", "Top-Right", "Bottom-Left", "Bottom-Right"]
+    for ax, quad, title in zip(axes.flat, quadrants, titles):
+        ax.imshow(quad)
+        ax.set_title(title)
+        ax.axis("off")
+    fig.suptitle("Task 5: Four Quadrants")
+    plt.show()
+
+    # Merge back: np.hstack glues arrays side-by-side (horizontally),
+    # np.vstack glues arrays on top of each other (vertically).
+    top_row = np.hstack((top_left, top_right))
+    bottom_row = np.hstack((bottom_left, bottom_right))
+    merged = np.vstack((top_row, bottom_row))
+
+    plt.figure(figsize=(6, 5))
+    plt.imshow(merged)
+    plt.title("Task 5: Merged Back Together")
+    plt.axis("off")
+    plt.show()
+
+    # Sanity check: merged should be identical in shape to the original.
+    print("Task 5: Original shape:", img_rgb.shape, "| Merged shape:", merged.shape)
+
+    return merged
+
+
+# ---------------------------------------------------------------------------
+# TASK 6: Histogram of each color channel
+# ---------------------------------------------------------------------------
+def task6_color_histogram(img_rgb):
+    colors = ("red", "green", "blue")
+
+    plt.figure(figsize=(7, 5))
+    for i, color in enumerate(colors):
+        # cv2.calcHist counts how many pixels have each intensity value (0-255)
+        # for one channel. [img_rgb] = image, [i] = which channel (0=R,1=G,2=B),
+        # None = no mask (use whole image), [256] = 256 bins, [0,256] = value range.
+        hist = cv2.calcHist([img_rgb], [i], None, [256], [0, 256])
+        plt.plot(hist, color=color, label=f"{color} channel")
+
+    plt.title("Task 6: Color Channel Histograms")
+    plt.xlabel("Pixel Intensity (0-255)")
+    plt.ylabel("Number of Pixels")
+    plt.legend()
+    plt.show()
+
+
+# ---------------------------------------------------------------------------
+# TASK 7: Convert to grayscale, plot its histogram
+# ---------------------------------------------------------------------------
+def task7_grayscale(img_rgb):
+    # Converts 3-channel RGB into 1-channel grayscale using a weighted
+    # formula (green contributes most because human eyes are most
+    # sensitive to green light).
+    gray = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2GRAY)
+
+    fig, axes = plt.subplots(1, 2, figsize=(10, 4))
+    axes[0].imshow(gray, cmap="gray")  # cmap="gray" tells matplotlib this
+    axes[0].set_title("Task 7: Grayscale Image")           # is single-channel,
+    axes[0].axis("off")                                     # not RGB.
+
+    hist_gray = cv2.calcHist([gray], [0], None, [256], [0, 256])
+    axes[1].plot(hist_gray, color="black")
+    axes[1].set_title("Task 7: Grayscale Histogram")
+    axes[1].set_xlabel("Pixel Intensity (0-255)")
+    axes[1].set_ylabel("Number of Pixels")
+
+    plt.tight_layout()
+    plt.show()
+
+    return gray
+
+
+# ---------------------------------------------------------------------------
+# TASK 8: Zoom in 2x and zoom out 2x, show side by side, print shapes
+# ---------------------------------------------------------------------------
+def task8_zoom(img_rgb):
+    h, w, _ = img_rgb.shape
+
+    # cv2.resize(image, (new_width, new_height)) - note width comes BEFORE
+    # height here, which is the opposite order of .shape! Easy mistake to make.
+    zoomed_in = cv2.resize(img_rgb, (w * 2, h * 2), interpolation=cv2.INTER_LINEAR)
+    zoomed_out = cv2.resize(img_rgb, (w // 2, h // 2), interpolation=cv2.INTER_LINEAR)
+
+    print("Task 8: Original shape:", img_rgb.shape)
+    print("Task 8: Zoomed IN (2x) shape:", zoomed_in.shape)
+    print("Task 8: Zoomed OUT (2x) shape:", zoomed_out.shape)
+
+    fig, axes = plt.subplots(1, 2, figsize=(10, 5))
+    axes[0].imshow(zoomed_in)
+    axes[0].set_title(f"Zoomed IN 2x {zoomed_in.shape[:2]}")
+    axes[0].axis("off")
+
+    axes[1].imshow(zoomed_out)
+    axes[1].set_title(f"Zoomed OUT 2x {zoomed_out.shape[:2]}")
+    axes[1].axis("off")
+
+    plt.tight_layout()
+    plt.show()
+
+    return zoomed_in, zoomed_out
+
+
+# ---------------------------------------------------------------------------
+# TASK 9: Image pyramids using cv2.pyrDown()
+# ---------------------------------------------------------------------------
+def task9_pyramid(img_rgb):
+    # cv2.pyrDown() blurs the image slightly THEN halves its size. This is
+    # different from plain resizing because the blur step reduces
+    # "aliasing" artifacts, which is important in real image pyramids
+    # (used for multi-resolution analysis, e.g. object detection at
+    # different scales).
+    level0 = img_rgb                     # original resolution
+    level1 = cv2.pyrDown(level0)         # half resolution
+    level2 = cv2.pyrDown(level1)         # quarter resolution
+    level3 = cv2.pyrDown(level2)         # eighth resolution
+
+    levels = [level0, level1, level2, level3]
+    titles = [f"Level {i} - {lvl.shape[1]}x{lvl.shape[0]}" for i, lvl in enumerate(levels)]
+
+    fig, axes = plt.subplots(1, 4, figsize=(14, 4))
+    for ax, lvl, title in zip(axes, levels, titles):
+        ax.imshow(lvl)
+        ax.set_title(title, fontsize=9)
+        ax.axis("off")
+    fig.suptitle("Task 9: Image Pyramid (cv2.pyrDown)")
+    plt.tight_layout()
+    plt.show()
+
+    for i, lvl in enumerate(levels):
+        print(f"Task 9: Pyramid level {i} shape = {lvl.shape}")
+
+
+# ---------------------------------------------------------------------------
+# RUN EVERYTHING IN ORDER
+# ---------------------------------------------------------------------------
+if __name__ == "__main__":
+    img_bgr, img_rgb = task1_load_and_show(IMAGE_PATH)
+    task2_normalize(img_rgb)
+    task3_print_info(img_bgr)
+    task4_crop(img_rgb)
+    task5_split_and_merge(img_rgb)
+    task6_color_histogram(img_rgb)
+    task7_grayscale(img_rgb)
+    task8_zoom(img_rgb)
+    task9_pyramid(img_rgb)
+
+    print("\nAll tasks complete.")
