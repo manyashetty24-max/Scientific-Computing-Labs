@@ -1,0 +1,743 @@
+# ============================================================
+# ESG 633 - PROGRAMMING FOR GEOINFORMATICS
+# LAB 4 - SATELLITE DATA PROCESSING
+# SENTINEL-2
+# ============================================================
+
+import os
+import rasterio
+import numpy as np
+import matplotlib.pyplot as plt
+
+
+# ============================================================
+# 1. AOI FOLDER
+# ============================================================
+
+data_folder = r"E:\IIST\1st sem\Scientific computing\Lab\Lab 4\10km2_AOI"
+
+
+# ============================================================
+# 2. FILE PATHS
+# ============================================================
+
+blue_path = os.path.join(
+    data_folder,
+    "B02_Blue_10km2.tif"
+)
+
+green_path = os.path.join(
+    data_folder,
+    "B03_Green_10km2.tif"
+)
+
+red_path = os.path.join(
+    data_folder,
+    "B04_Red_10km2.tif"
+)
+
+nir_path = os.path.join(
+    data_folder,
+    "B08_NIR_10km2.tif"
+)
+
+
+# ============================================================
+# 3. CHECK FILES
+# ============================================================
+
+print("\n========== FILE CHECK ==========")
+
+files = {
+    "Blue (B02)": blue_path,
+    "Green (B03)": green_path,
+    "Red (B04)": red_path,
+    "NIR (B08)": nir_path
+}
+
+for name, path in files.items():
+
+    if os.path.exists(path):
+        print(name, "-> FOUND")
+
+    else:
+        print(name, "-> NOT FOUND")
+
+
+# ============================================================
+# Q1 - RASTER INFORMATION
+# ============================================================
+
+print("\n========== Q1: RASTER INFORMATION ==========")
+
+with rasterio.open(red_path) as src:
+
+    print("Width:", src.width)
+    print("Height:", src.height)
+    print("Number of bands:", src.count)
+    print("CRS:", src.crs)
+    print("Resolution:", src.res)
+    print("Data type:", src.dtypes)
+
+    print("\nTransform:")
+    print(src.transform)
+
+    print("\nBounds:")
+    print(src.bounds)
+
+
+# ============================================================
+# 4. READ THE FOUR BANDS
+# ============================================================
+
+with rasterio.open(blue_path) as src:
+    blue = src.read(1)
+
+with rasterio.open(green_path) as src:
+    green = src.read(1)
+
+with rasterio.open(red_path) as src:
+    red = src.read(1)
+
+with rasterio.open(nir_path) as src:
+    nir = src.read(1)
+
+
+# ============================================================
+# CHECK SHAPES
+# ============================================================
+
+print("\n========== BAND SHAPES ==========")
+
+print("Blue :", blue.shape)
+print("Green:", green.shape)
+print("Red  :", red.shape)
+print("NIR  :", nir.shape)
+
+
+# ============================================================
+# Q2 - MINIMUM, MAXIMUM AND MEAN
+# ============================================================
+
+print("\n========== Q2: BAND STATISTICS ==========")
+
+bands = {
+    "Blue (B02)": blue,
+    "Green (B03)": green,
+    "Red (B04)": red,
+    "NIR (B08)": nir
+}
+
+for name, band in bands.items():
+
+    print("\n" + name)
+
+    print("Minimum:", np.min(band))
+    print("Maximum:", np.max(band))
+    print("Mean:", np.mean(band))
+
+
+# ============================================================
+# Q2 - HISTOGRAMS
+# ============================================================
+
+print("\n========== Q2: HISTOGRAMS ==========")
+
+selected_bands = {
+    "Blue (B02)": blue,
+    "Red (B04)": red,
+    "NIR (B08)": nir
+}
+
+for name, band in selected_bands.items():
+
+    plt.figure(figsize=(8, 5))
+
+    plt.hist(
+        band.flatten(),
+        bins=50
+    )
+
+    plt.title(
+        name + " Histogram"
+    )
+
+    plt.xlabel(
+        "Pixel Value"
+    )
+
+    plt.ylabel(
+        "Frequency"
+    )
+
+    plt.grid()
+
+    plt.show()
+
+
+# ============================================================
+# IMAGE STRETCHING FUNCTION
+# Used only for displaying RGB images
+# ============================================================
+
+def stretch(image):
+
+    image = image.astype(np.float32)
+
+    low = np.percentile(
+        image,
+        2
+    )
+
+    high = np.percentile(
+        image,
+        98
+    )
+
+    image = np.clip(
+        image,
+        low,
+        high
+    )
+
+    if high != low:
+
+        image = (
+            image - low
+        ) / (
+            high - low
+        )
+
+    else:
+
+        image = np.zeros_like(
+            image,
+            dtype=np.float32
+        )
+
+    return image
+
+
+# ============================================================
+# STRETCH BANDS
+# ============================================================
+
+blue_s = stretch(blue)
+green_s = stretch(green)
+red_s = stretch(red)
+nir_s = stretch(nir)
+
+
+# ============================================================
+# Q4 - TRUE COLOR COMPOSITE
+#
+# R = B04
+# G = B03
+# B = B02
+# ============================================================
+
+print("\n========== Q4: TRUE COLOR COMPOSITE ==========")
+
+true_color = np.stack(
+    [
+        red_s,
+        green_s,
+        blue_s
+    ],
+    axis=2
+)
+
+plt.figure(
+    figsize=(8, 8)
+)
+
+plt.imshow(
+    true_color
+)
+
+plt.title(
+    "Sentinel-2 True Color Composite"
+)
+
+plt.axis("off")
+
+plt.show()
+
+
+# ============================================================
+# Q4 - FALSE COLOR COMPOSITE
+#
+# R = B08
+# G = B04
+# B = B03
+# ============================================================
+
+print("\n========== Q4: FALSE COLOR COMPOSITE ==========")
+
+false_color = np.stack(
+    [
+        nir_s,
+        red_s,
+        green_s
+    ],
+    axis=2
+)
+
+plt.figure(
+    figsize=(8, 8)
+)
+
+plt.imshow(
+    false_color
+)
+
+plt.title(
+    "Sentinel-2 False Color Composite / Color Infrared"
+)
+
+plt.axis("off")
+
+plt.show()
+
+
+# ============================================================
+# Q3 - BAND STACKING
+#
+# Band 1 = B02 Blue
+# Band 2 = B03 Green
+# Band 3 = B04 Red
+# Band 4 = B08 NIR
+# ============================================================
+
+print("\n========== Q3: BAND STACKING ==========")
+
+stacked = np.stack(
+    [
+        blue,
+        green,
+        red,
+        nir
+    ],
+    axis=0
+)
+
+print(
+    "Stacked shape:",
+    stacked.shape
+)
+
+
+# ============================================================
+# SAVE BAND STACK
+# ============================================================
+
+output_folder = os.path.join(
+    data_folder,
+    "outputs"
+)
+
+os.makedirs(
+    output_folder,
+    exist_ok=True
+)
+
+
+stacked_path = os.path.join(
+    output_folder,
+    "Sentinel2_B02_B03_B04_B08_Stack.tif"
+)
+
+
+with rasterio.open(blue_path) as src:
+
+    profile = src.profile.copy()
+
+
+profile.update(
+    driver="GTiff",
+    count=4,
+    dtype=stacked.dtype
+)
+
+
+with rasterio.open(
+    stacked_path,
+    "w",
+    **profile
+) as dst:
+
+    dst.write(
+        stacked
+    )
+
+
+print(
+    "Band stack saved at:"
+)
+
+print(stacked_path)
+
+
+# ============================================================
+# Q7 - NDVI
+#
+# NDVI = (NIR - RED) / (NIR + RED)
+#
+# NIR = B08
+# RED = B04
+# ============================================================
+
+print("\n========== Q7: NDVI ==========")
+
+
+nir_float = nir.astype(
+    np.float32
+)
+
+red_float = red.astype(
+    np.float32
+)
+
+
+denominator = (
+    nir_float + red_float
+)
+
+
+ndvi = np.divide(
+    nir_float - red_float,
+    denominator,
+    out=np.zeros_like(
+        nir_float,
+        dtype=np.float32
+    ),
+    where=denominator != 0
+)
+
+
+print(
+    "Minimum NDVI:",
+    np.min(ndvi)
+)
+
+print(
+    "Maximum NDVI:",
+    np.max(ndvi)
+)
+
+print(
+    "Mean NDVI:",
+    np.mean(ndvi)
+)
+
+
+# ============================================================
+# DISPLAY NDVI
+# ============================================================
+
+plt.figure(
+    figsize=(8, 8)
+)
+
+plt.imshow(
+    ndvi,
+    cmap="RdYlGn",
+    vmin=-1,
+    vmax=1
+)
+
+plt.colorbar(
+    label="NDVI"
+)
+
+plt.title(
+    "Sentinel-2 NDVI Map"
+)
+
+plt.axis("off")
+
+plt.show()
+
+
+# ============================================================
+# Q7 - NDVI THRESHOLDING
+#
+# 0 = NO VEGETATION
+# 1 = VEGETATION
+# ============================================================
+
+threshold = 0.3
+
+
+vegetation = np.where(
+    ndvi >= threshold,
+    1,
+    0
+)
+
+
+# ============================================================
+# DISPLAY VEGETATION MAP
+# ============================================================
+
+plt.figure(
+    figsize=(8, 8)
+)
+
+plt.imshow(
+    vegetation,
+    cmap="gray",
+    vmin=0,
+    vmax=1
+)
+
+plt.title(
+    "Vegetation Map - NDVI Threshold = 0.3"
+)
+
+plt.colorbar(
+    ticks=[0, 1],
+    label="0 = No Vegetation, 1 = Vegetation"
+)
+
+plt.axis("off")
+
+plt.show()
+
+
+# ============================================================
+# CALCULATE VEGETATION AREA
+# ============================================================
+
+vegetation_pixels = np.sum(
+    vegetation == 1
+)
+
+
+with rasterio.open(red_path) as src:
+
+    pixel_width = src.res[0]
+
+    pixel_height = src.res[1]
+
+
+pixel_area = (
+    pixel_width *
+    pixel_height
+)
+
+
+vegetation_area_m2 = (
+    vegetation_pixels *
+    pixel_area
+)
+
+
+vegetation_area_hectares = (
+    vegetation_area_m2 /
+    10000
+)
+
+
+vegetation_area_km2 = (
+    vegetation_area_m2 /
+    1000000
+)
+
+
+print("\n========== VEGETATION AREA ==========")
+
+print(
+    "Vegetation pixels:",
+    vegetation_pixels
+)
+
+print(
+    "Pixel area:",
+    pixel_area,
+    "m²"
+)
+
+print(
+    "Vegetated area:",
+    vegetation_area_m2,
+    "m²"
+)
+
+print(
+    "Vegetated area:",
+    vegetation_area_hectares,
+    "hectares"
+)
+
+print(
+    "Vegetated area:",
+    vegetation_area_km2,
+    "km²"
+)
+
+
+# ============================================================
+# SAVE VEGETATION MAP
+# ============================================================
+
+vegetation_path = os.path.join(
+    output_folder,
+    "Sentinel2_Vegetation_Map.tif"
+)
+
+
+with rasterio.open(red_path) as src:
+
+    vegetation_profile = src.profile.copy()
+
+
+vegetation_profile.update(
+    driver="GTiff",
+    count=1,
+    dtype=rasterio.uint8
+)
+
+
+with rasterio.open(
+    vegetation_path,
+    "w",
+    **vegetation_profile
+) as dst:
+
+    dst.write(
+        vegetation.astype(
+            rasterio.uint8
+        ),
+        1
+    )
+
+
+print(
+    "\nVegetation map saved at:"
+)
+
+print(
+    vegetation_path
+)
+
+
+# ============================================================
+# Q6 - SPECTRAL SIGNATURE
+#
+# Sentinel-2 bands used:
+#
+# B02 = Blue  = 0.490 µm
+# B03 = Green = 0.560 µm
+# B04 = Red   = 0.665 µm
+# B08 = NIR   = 0.842 µm
+# ============================================================
+
+print("\n========== Q6: SPECTRAL SIGNATURE ==========")
+
+
+# Select one pixel
+# You can change these values later.
+
+row = 150
+col = 150
+
+
+spectral_values = [
+
+    blue[row, col],
+    green[row, col],
+    red[row, col],
+    nir[row, col]
+
+]
+
+
+wavelengths = [
+
+    0.490,
+    0.560,
+    0.665,
+    0.842
+
+]
+
+
+plt.figure(
+    figsize=(9, 6)
+)
+
+plt.plot(
+    wavelengths,
+    spectral_values,
+    marker="o"
+)
+
+plt.xlabel(
+    "Wavelength (µm)"
+)
+
+plt.ylabel(
+    "Pixel Value"
+)
+
+plt.title(
+    "Sentinel-2 Spectral Signature"
+)
+
+plt.grid()
+
+plt.show()
+
+
+print("\nSelected pixel:")
+
+print(
+    "Row:",
+    row
+)
+
+print(
+    "Column:",
+    col
+)
+
+
+print("\nSpectral values:")
+
+for wavelength, value in zip(
+    wavelengths,
+    spectral_values
+):
+
+    print(
+        wavelength,
+        "µm :",
+        value
+    )
+
+
+# ============================================================
+# FINAL OUTPUT
+# ============================================================
+
+print("\n============================================")
+print("LAB 4 PROCESSING COMPLETED")
+print("============================================")
+
+print("\nOutput folder:")
+print(output_folder)
+
+print("\nBand stack:")
+print(stacked_path)
+
+print("\nVegetation map:")
+print(vegetation_path)
+
+print("\nVegetated area:")
+print(
+    vegetation_area_hectares,
+    "hectares"
+)
+
+print("\n============================================")
