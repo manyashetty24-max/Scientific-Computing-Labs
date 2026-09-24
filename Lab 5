@@ -1,0 +1,1113 @@
+# ============================================================
+# ESG 633 - PROGRAMMING FOR GEOINFORMATICS
+# LAB 5 - VECTOR DATA PROCESSING
+#
+# Topics:
+# 1. Print projection
+# 2. Check missing attributes
+# 3. Reproject to EPSG:4326, plot and save
+# 4. Calculate NE state areas and plot bar chart
+# 5. Download/plot Karnataka shapefile from GADM
+# 6. Extract a favourite region and save as EPSG:4326
+# 7. Plot district areas of Karnataka
+# ============================================================
+
+
+# ============================================================
+# IMPORT LIBRARIES
+# ============================================================
+
+import geopandas as gpd
+import matplotlib.pyplot as plt
+import os
+import glob
+
+
+# ============================================================
+# SET YOUR LAB 5 FOLDER
+# ============================================================
+
+BASE_FOLDER = r"E:\IIST\1st sem\Scientific computing\Lab\Lab 5"
+
+
+# ============================================================
+# CREATE OUTPUT FOLDER
+# ============================================================
+
+OUTPUT_FOLDER = os.path.join(
+    BASE_FOLDER,
+    "Output"
+)
+
+os.makedirs(
+    OUTPUT_FOLDER,
+    exist_ok=True
+)
+
+
+print("=" * 70)
+print("ESG 633 - PROGRAMMING FOR GEOINFORMATICS")
+print("LAB 5 - VECTOR DATA PROCESSING")
+print("=" * 70)
+
+
+# ============================================================
+# FIND SUPPLIED SHAPEFILES
+# ============================================================
+
+meghalaya_files = glob.glob(
+    os.path.join(
+        BASE_FOLDER,
+        "**",
+        "meghalaya.shp"
+    ),
+    recursive=True
+)
+
+ne_files = glob.glob(
+    os.path.join(
+        BASE_FOLDER,
+        "**",
+        "NE_states.shp"
+    ),
+    recursive=True
+)
+
+
+if len(meghalaya_files) == 0:
+
+    raise FileNotFoundError(
+        "\nmeghalaya.shp was not found.\n"
+        "Please extract the Meghalaya ZIP file "
+        "inside the Lab 5 folder."
+    )
+
+
+if len(ne_files) == 0:
+
+    raise FileNotFoundError(
+        "\nNE_states.shp was not found.\n"
+        "Please extract the NE_states ZIP file "
+        "inside the Lab 5 folder."
+    )
+
+
+MEGHALAYA_PATH = meghalaya_files[0]
+
+NE_PATH = ne_files[0]
+
+
+print("\nMeghalaya shapefile:")
+print(MEGHALAYA_PATH)
+
+print("\nNE States shapefile:")
+print(NE_PATH)
+
+
+# ============================================================
+# READ SHAPEFILES
+# ============================================================
+
+meghalaya = gpd.read_file(
+    MEGHALAYA_PATH
+)
+
+ne_states = gpd.read_file(
+    NE_PATH
+)
+
+
+print("\nBoth shapefiles loaded successfully.")
+
+
+# ============================================================
+# QUESTION 1
+# PRINT PROJECTION OF ALL SHAPEFILES
+# ============================================================
+
+print("\n")
+print("=" * 70)
+print("QUESTION 1 - PROJECTION OF SHAPEFILES")
+print("=" * 70)
+
+
+print("\nProjection / CRS of Meghalaya:")
+print(meghalaya.crs)
+
+
+print("\nProjection / CRS of NE States:")
+print(ne_states.crs)
+
+
+# Print coordinate reference system details
+print("\nMeghalaya CRS details:")
+print(meghalaya.crs.to_string())
+
+
+print("\nNE States CRS details:")
+print(ne_states.crs.to_string())
+
+
+# ============================================================
+# QUESTION 2
+# CHECK WHETHER SHAPEFILES HAVE MISSING ATTRIBUTES
+# ============================================================
+
+print("\n")
+print("=" * 70)
+print("QUESTION 2 - CHECK MISSING ATTRIBUTES")
+print("=" * 70)
+
+
+# ------------------------------------------------------------
+# Meghalaya
+# ------------------------------------------------------------
+
+print("\nMissing values in Meghalaya:")
+
+print(
+    meghalaya.isnull().sum()
+)
+
+
+print("\nTotal missing values in Meghalaya:")
+
+print(
+    meghalaya.isnull().sum().sum()
+)
+
+
+# ------------------------------------------------------------
+# NE States
+# ------------------------------------------------------------
+
+print("\nMissing values in NE States:")
+
+print(
+    ne_states.isnull().sum()
+)
+
+
+print("\nTotal missing values in NE States:")
+
+print(
+    ne_states.isnull().sum().sum()
+)
+
+
+# ============================================================
+# QUESTION 3
+# REPROJECT ALL SHAPEFILES TO EPSG:4326
+# PLOT AND SAVE AS NEW SHAPEFILES
+# ============================================================
+
+print("\n")
+print("=" * 70)
+print("QUESTION 3 - REPROJECT TO EPSG:4326")
+print("=" * 70)
+
+
+# ------------------------------------------------------------
+# Reproject Meghalaya
+# ------------------------------------------------------------
+
+meghalaya_4326 = meghalaya.to_crs(
+    epsg=4326
+)
+
+
+# ------------------------------------------------------------
+# Reproject NE States
+# ------------------------------------------------------------
+
+ne_states_4326 = ne_states.to_crs(
+    epsg=4326
+)
+
+
+print("\nNew CRS of Meghalaya:")
+print(
+    meghalaya_4326.crs
+)
+
+
+print("\nNew CRS of NE States:")
+print(
+    ne_states_4326.crs
+)
+
+
+# ------------------------------------------------------------
+# SAVE REPROJECTED SHAPEFILES
+# ------------------------------------------------------------
+
+meghalaya_output = os.path.join(
+    OUTPUT_FOLDER,
+    "Meghalaya_EPSG4326.shp"
+)
+
+
+ne_output = os.path.join(
+    OUTPUT_FOLDER,
+    "NE_States_EPSG4326.shp"
+)
+
+
+meghalaya_4326.to_file(
+    meghalaya_output
+)
+
+
+ne_states_4326.to_file(
+    ne_output
+)
+
+
+print("\nReprojected Meghalaya saved to:")
+print(meghalaya_output)
+
+
+print("\nReprojected NE States saved to:")
+print(ne_output)
+
+
+# ------------------------------------------------------------
+# PLOT MEGHALAYA
+# ------------------------------------------------------------
+
+fig, ax = plt.subplots(
+    figsize=(8, 8)
+)
+
+
+meghalaya_4326.plot(
+    ax=ax,
+    edgecolor="black",
+    linewidth=1
+)
+
+
+ax.set_title(
+    "Meghalaya State - EPSG:4326",
+    fontsize=14
+)
+
+
+ax.set_xlabel(
+    "Longitude"
+)
+
+
+ax.set_ylabel(
+    "Latitude"
+)
+
+
+plt.tight_layout()
+
+
+plt.savefig(
+    os.path.join(
+        OUTPUT_FOLDER,
+        "Meghalaya_EPSG4326.png"
+    ),
+    dpi=300
+)
+
+
+plt.show()
+
+
+# ------------------------------------------------------------
+# PLOT NE STATES
+# HIGHLIGHT STATES USING DIFFERENT COLOURS
+# ------------------------------------------------------------
+
+fig, ax = plt.subplots(
+    figsize=(10, 10)
+)
+
+
+# Check the state-name column
+print("\nNE States columns:")
+print(
+    ne_states_4326.columns.tolist()
+)
+
+
+# Plot states
+ne_states_4326.plot(
+    ax=ax,
+    column="State_Name",
+    categorical=True,
+    legend=True,
+    edgecolor="black",
+    linewidth=0.8
+)
+
+
+# Add state labels
+for index, row in ne_states_4326.iterrows():
+
+    point = row.geometry.representative_point()
+
+    ax.annotate(
+        text=row["State_Name"],
+        xy=(point.x, point.y),
+        ha="center",
+        va="center",
+        fontsize=8
+    )
+
+
+ax.set_title(
+    "North Eastern States of India - EPSG:4326",
+    fontsize=14
+)
+
+
+ax.set_xlabel(
+    "Longitude"
+)
+
+
+ax.set_ylabel(
+    "Latitude"
+)
+
+
+plt.tight_layout()
+
+
+plt.savefig(
+    os.path.join(
+        OUTPUT_FOLDER,
+        "NE_States_EPSG4326.png"
+    ),
+    dpi=300
+)
+
+
+plt.show()
+
+
+# ============================================================
+# QUESTION 4
+# CALCULATE AREAS OF NORTH EASTERN STATES
+# SORT DESCENDING
+# PLOT BAR CHART
+# ============================================================
+
+print("\n")
+print("=" * 70)
+print("QUESTION 4 - AREA OF NORTH EASTERN STATES")
+print("=" * 70)
+
+
+# IMPORTANT:
+#
+# EPSG:4326 is a geographic CRS.
+# Its coordinates are in degrees.
+#
+# Therefore, we should NOT calculate area directly
+# using EPSG:4326.
+#
+# EPSG:6933 is an equal-area CRS and is used here
+# for area calculation.
+# ------------------------------------------------------------
+
+
+ne_area = ne_states_4326.to_crs(
+    epsg=6933
+)
+
+
+# Calculate area in square metres
+ne_area["Area_m2"] = (
+    ne_area.geometry.area
+)
+
+
+# Convert square metres to square kilometres
+ne_area["Area_km2"] = (
+    ne_area["Area_m2"] / 1_000_000
+)
+
+
+# Sort from largest to smallest
+ne_area_sorted = ne_area.sort_values(
+    by="Area_km2",
+    ascending=False
+)
+
+
+# ------------------------------------------------------------
+# PRINT TABLE
+# ------------------------------------------------------------
+
+print("\nArea of North Eastern States:")
+print(
+    ne_area_sorted[
+        ["State_Name", "Area_km2"]
+    ].to_string(index=False)
+)
+
+
+# ------------------------------------------------------------
+# SAVE AREA TABLE
+# ------------------------------------------------------------
+
+ne_area_sorted[
+    ["State_Name", "Area_km2"]
+].to_csv(
+    os.path.join(
+        OUTPUT_FOLDER,
+        "North_Eastern_State_Areas.csv"
+    ),
+    index=False
+)
+
+
+# ------------------------------------------------------------
+# BAR CHART
+# ------------------------------------------------------------
+
+plt.figure(
+    figsize=(11, 6)
+)
+
+
+plt.bar(
+    ne_area_sorted["State_Name"],
+    ne_area_sorted["Area_km2"]
+)
+
+
+plt.title(
+    "Area of North Eastern States",
+    fontsize=14
+)
+
+
+plt.xlabel(
+    "State"
+)
+
+
+plt.ylabel(
+    "Area (km²)"
+)
+
+
+plt.xticks(
+    rotation=45,
+    ha="right"
+)
+
+
+plt.tight_layout()
+
+
+plt.savefig(
+    os.path.join(
+        OUTPUT_FOLDER,
+        "North_Eastern_State_Areas.png"
+    ),
+    dpi=300
+)
+
+
+plt.show()
+
+
+# ============================================================
+# QUESTION 5
+# DOWNLOAD YOUR STATE SHAPEFILE FROM GADM
+#
+# STATE CHOSEN: KARNATAKA
+# ============================================================
+
+print("\n")
+print("=" * 70)
+print("QUESTION 5 - KARNATAKA STATE FROM GADM")
+print("=" * 70)
+
+
+# ------------------------------------------------------------
+# GADM LEVEL 1
+# Level 1 contains state boundaries
+# ------------------------------------------------------------
+
+
+gadm_level1_files = glob.glob(
+    os.path.join(
+        BASE_FOLDER,
+        "**",
+        "*_IND_1.shp"
+    ),
+    recursive=True
+)
+
+
+if len(gadm_level1_files) == 0:
+
+    print("\nGADM Level 1 shapefile was not found.")
+
+    print(
+        "\nPlease download the India Level-1 "
+        "GADM shapefile and place it inside:"
+    )
+
+    print(
+        os.path.join(
+            BASE_FOLDER,
+            "GADM"
+        )
+    )
+
+    print(
+        "\nExpected file:"
+    )
+
+    print(
+        "gadm41_IND_1.shp"
+    )
+
+else:
+
+    GADM_LEVEL1_PATH = gadm_level1_files[0]
+
+
+    print("\nGADM Level 1 file:")
+    print(GADM_LEVEL1_PATH)
+
+
+    # Read India states
+    india_states = gpd.read_file(
+        GADM_LEVEL1_PATH
+    )
+
+
+    print("\nGADM attributes:")
+    print(
+        india_states.columns.tolist()
+    )
+
+
+    # --------------------------------------------------------
+    # EXTRACT KARNATAKA
+    # --------------------------------------------------------
+
+    karnataka = india_states[
+        india_states["NAME_1"].str.lower()
+        == "karnataka"
+    ].copy()
+
+
+    if karnataka.empty:
+
+        print(
+            "\nKarnataka was not found."
+        )
+
+        print(
+            "\nAvailable states:"
+        )
+
+        print(
+            india_states["NAME_1"].tolist()
+        )
+
+    else:
+
+        # Reproject to EPSG:4326
+        karnataka = karnataka.to_crs(
+            epsg=4326
+        )
+
+
+        print("\nSelected state:")
+        print(
+            karnataka["NAME_1"].tolist()
+        )
+
+
+        print("\nKarnataka CRS:")
+        print(
+            karnataka.crs
+        )
+
+
+        # ----------------------------------------------------
+        # PLOT KARNATAKA
+        # ----------------------------------------------------
+
+        fig, ax = plt.subplots(
+            figsize=(8, 8)
+        )
+
+
+        karnataka.plot(
+            ax=ax,
+            edgecolor="black",
+            linewidth=1
+        )
+
+
+        ax.set_title(
+            "Karnataka State - GADM",
+            fontsize=14
+        )
+
+
+        ax.set_xlabel(
+            "Longitude"
+        )
+
+
+        ax.set_ylabel(
+            "Latitude"
+        )
+
+
+        plt.tight_layout()
+
+
+        plt.savefig(
+            os.path.join(
+                OUTPUT_FOLDER,
+                "Karnataka_GADM.png"
+            ),
+            dpi=300
+        )
+
+
+        plt.show()
+
+
+        # ----------------------------------------------------
+        # SAVE KARNATAKA AS NEW SHAPEFILE
+        # ----------------------------------------------------
+
+        karnataka_output = os.path.join(
+            OUTPUT_FOLDER,
+            "Karnataka_EPSG4326.shp"
+        )
+
+
+        karnataka.to_file(
+            karnataka_output
+        )
+
+
+        print(
+            "\nKarnataka shapefile saved to:"
+        )
+
+
+        print(
+            karnataka_output
+        )
+
+
+# ============================================================
+# QUESTION 6
+# EXTRACT A FAVOURITE REGION
+#
+# FAVOURITE REGION:
+# SOUTH INDIA
+#
+# States:
+# Karnataka
+# Kerala
+# Tamil Nadu
+# Andhra Pradesh
+# Telangana
+# ============================================================
+
+print("\n")
+print("=" * 70)
+print("QUESTION 6 - EXTRACT FAVOURITE REGION")
+print("=" * 70)
+
+
+if len(gadm_level1_files) == 0:
+
+    print(
+        "\nGADM Level 1 file is required."
+    )
+
+else:
+
+    # Read India states
+    india = gpd.read_file(
+        GADM_LEVEL1_PATH
+    )
+
+
+    # --------------------------------------------------------
+    # SOUTH INDIA STATES
+    # --------------------------------------------------------
+
+    south_india_states = [
+        "Karnataka",
+        "Kerala",
+        "Tamil Nadu",
+        "Andhra Pradesh",
+        "Telangana"
+    ]
+
+
+    # Extract states
+    south_india = india[
+        india["NAME_1"].isin(
+            south_india_states
+        )
+    ].copy()
+
+
+    # Reproject to EPSG:4326
+    south_india = south_india.to_crs(
+        epsg=4326
+    )
+
+
+    print(
+        "\nStates extracted:"
+    )
+
+
+    print(
+        south_india["NAME_1"].tolist()
+    )
+
+
+    print(
+        "\nCRS:"
+    )
+
+
+    print(
+        south_india.crs
+    )
+
+
+    # --------------------------------------------------------
+    # PLOT SOUTH INDIA
+    # --------------------------------------------------------
+
+    fig, ax = plt.subplots(
+        figsize=(9, 9)
+    )
+
+
+    south_india.plot(
+        ax=ax,
+        column="NAME_1",
+        categorical=True,
+        legend=True,
+        edgecolor="black",
+        linewidth=0.8
+    )
+
+
+    ax.set_title(
+        "Favourite Region - South India",
+        fontsize=14
+    )
+
+
+    ax.set_xlabel(
+        "Longitude"
+    )
+
+
+    ax.set_ylabel(
+        "Latitude"
+    )
+
+
+    plt.tight_layout()
+
+
+    plt.savefig(
+        os.path.join(
+            OUTPUT_FOLDER,
+            "South_India.png"
+        ),
+        dpi=300
+    )
+
+
+    plt.show()
+
+
+    # --------------------------------------------------------
+    # SAVE FAVOURITE REGION
+    # --------------------------------------------------------
+
+    south_india_output = os.path.join(
+        OUTPUT_FOLDER,
+        "South_India_EPSG4326.shp"
+    )
+
+
+    south_india.to_file(
+        south_india_output
+    )
+
+
+    print(
+        "\nSouth India shapefile saved to:"
+    )
+
+
+    print(
+        south_india_output
+    )
+
+
+# ============================================================
+# QUESTION 7
+# DISTRICT AREAS OF KARNATAKA
+# ============================================================
+
+print("\n")
+print("=" * 70)
+print("QUESTION 7 - KARNATAKA DISTRICT AREAS")
+print("=" * 70)
+
+
+# ------------------------------------------------------------
+# GADM LEVEL 2
+# Level 2 contains district boundaries
+# ------------------------------------------------------------
+
+
+gadm_level2_files = glob.glob(
+    os.path.join(
+        BASE_FOLDER,
+        "**",
+        "*_IND_2.shp"
+    ),
+    recursive=True
+)
+
+
+if len(gadm_level2_files) == 0:
+
+    print(
+        "\nGADM Level 2 shapefile was not found."
+    )
+
+    print(
+        "\nPlease download the India Level-2 "
+        "GADM shapefile."
+    )
+
+
+else:
+
+    GADM_LEVEL2_PATH = gadm_level2_files[0]
+
+
+    print(
+        "\nGADM Level 2 file:"
+    )
+
+
+    print(
+        GADM_LEVEL2_PATH
+    )
+
+
+    # Read districts
+    districts = gpd.read_file(
+        GADM_LEVEL2_PATH
+    )
+
+
+    print(
+        "\nDistrict shapefile columns:"
+    )
+
+
+    print(
+        districts.columns.tolist()
+    )
+
+
+    # --------------------------------------------------------
+    # SELECT KARNATAKA DISTRICTS
+    # --------------------------------------------------------
+
+    karnataka_districts = districts[
+        districts["NAME_1"].str.lower()
+        == "karnataka"
+    ].copy()
+
+
+    if karnataka_districts.empty:
+
+        print(
+            "\nNo Karnataka districts found."
+        )
+
+
+    else:
+
+        print(
+            "\nNumber of Karnataka districts:"
+        )
+
+
+        print(
+            len(karnataka_districts)
+        )
+
+
+        # ----------------------------------------------------
+        # REPROJECT FOR AREA CALCULATION
+        # ----------------------------------------------------
+
+        karnataka_projected = (
+            karnataka_districts.to_crs(
+                epsg=6933
+            )
+        )
+
+
+        # ----------------------------------------------------
+        # CALCULATE AREA
+        # ----------------------------------------------------
+
+        karnataka_projected[
+            "Area_km2"
+        ] = (
+            karnataka_projected.geometry.area
+            / 1_000_000
+        )
+
+
+        # ----------------------------------------------------
+        # SORT DISTRICTS
+        # ----------------------------------------------------
+
+        district_area = (
+            karnataka_projected
+            .sort_values(
+                by="Area_km2",
+                ascending=False
+            )
+        )
+
+
+        # ----------------------------------------------------
+        # PRINT DISTRICT AREA TABLE
+        # ----------------------------------------------------
+
+        print(
+            "\nKarnataka District Areas:"
+        )
+
+
+        print(
+            district_area[
+                [
+                    "NAME_2",
+                    "Area_km2"
+                ]
+            ].to_string(
+                index=False
+            )
+        )
+
+
+        # ----------------------------------------------------
+        # SAVE DISTRICT AREA TABLE
+        # ----------------------------------------------------
+
+        district_area[
+            [
+                "NAME_2",
+                "Area_km2"
+            ]
+        ].to_csv(
+            os.path.join(
+                OUTPUT_FOLDER,
+                "Karnataka_District_Areas.csv"
+            ),
+            index=False
+        )
+
+
+        # ----------------------------------------------------
+        # CREATE BAR CHART
+        # ----------------------------------------------------
+
+        plt.figure(
+            figsize=(14, 7)
+        )
+
+
+        plt.bar(
+            district_area["NAME_2"],
+            district_area["Area_km2"]
+        )
+
+
+        plt.title(
+            "Area of Districts in Karnataka",
+            fontsize=14
+        )
+
+
+        plt.xlabel(
+            "District"
+        )
+
+
+        plt.ylabel(
+            "Area (km²)"
+        )
+
+
+        plt.xticks(
+            rotation=90
+        )
+
+
+        plt.tight_layout()
+
+
+        # Save bar chart
+        plt.savefig(
+            os.path.join(
+                OUTPUT_FOLDER,
+                "Karnataka_District_Areas.png"
+            ),
+            dpi=300
+        )
+
+
+        plt.show()
+
+
+# ============================================================
+# LAB COMPLETED
+# ============================================================
+
+print("\n")
+print("=" * 70)
+print("LAB 5 COMPLETED")
+print("=" * 70)
+
+
+print(
+    "\nAll output files are saved in:"
+)
+
+
+print(
+    OUTPUT_FOLDER
+)
